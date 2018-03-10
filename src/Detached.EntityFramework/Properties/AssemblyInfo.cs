@@ -5,4 +5,4 @@ using System.Resources;
 [assembly: AssemblyMetadata("Serviceable", "True")]
 [assembly: AssemblyCompany("No Company.")]
 [assembly: AssemblyCopyright("© No Copyright.")]
-[assembly: AssemblyProduct("Entity Framework Core Detached")]
+[assembly: AssemblyProduct("Entity Framework Core Detached Extended")]

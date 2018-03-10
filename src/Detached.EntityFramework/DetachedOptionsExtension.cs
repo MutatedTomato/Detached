@@ -1,10 +1,5 @@
-﻿using Detached.EntityFramework.Conventions;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
+﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
 
 namespace Detached.EntityFramework
 {
@@ -13,19 +8,11 @@ namespace Detached.EntityFramework
     /// </summary>
     public class DetachedOptionsExtension : IDbContextOptionsExtension
     {
-        IServiceCollection _detachedServiceCollection = new ServiceCollection();
-
         /// <summary>
         /// Gets an extension for the internal service collection of the DbContext.
         /// Allows to insert custom services into the internal service provider.
         /// </summary>
-        public IServiceCollection DetachedServices
-        {
-            get
-            {
-                return _detachedServiceCollection;  
-            }
-        }
+        public IServiceCollection DetachedServices { get; } = new ServiceCollection();
 
         /// <summary>
         /// Defines the behavior of detached update when an entity with a specified key value
@@ -34,13 +21,26 @@ namespace Detached.EntityFramework
         /// </summary>
         public bool ThrowExceptionOnEntityNotFound { get; set; }
 
-        public void ApplyServices(IServiceCollection serviceCollection)
+        public bool ApplyServices(IServiceCollection services)
         {
-            serviceCollection.AddDetachedEntityFramework();
-            foreach (var service in DetachedServices)
+            services.AddDetachedEntityFramework();
+            foreach (var detachedService in DetachedServices)
             {
-                serviceCollection.Add(service);
+                services.Add(detachedService);
             }
+
+            return true;
         }
+
+        public long GetServiceProviderHashCode()
+        {
+            return GetHashCode();
+        }
+
+        public void Validate(IDbContextOptions options)
+        {
+        }
+
+        public string LogFragment { get; } = "EntityFramework.Dettached";
     }
 }

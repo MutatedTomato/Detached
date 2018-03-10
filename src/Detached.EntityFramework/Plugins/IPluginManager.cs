@@ -33,10 +33,5 @@ namespace Detached.EntityFramework.Plugins
         /// Disables all plugins.
         /// </summary>
         void Disable();
-
-        /// <summary>
-        /// Releases all internal resources.
-        /// </summary>
-        void Dispose();
     }
 }

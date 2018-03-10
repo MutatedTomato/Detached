@@ -32,30 +32,30 @@ namespace Detached.EntityFramework.Services
         void InitializeKeyGetters()
         {
             _keyGetters = new List<IKeyGetter>();
-            HashSet<Property> visited = new HashSet<Property>();
-            foreach (Property property in _key.Properties)
+            var visited = new HashSet<IProperty>();
+            foreach (var property in _key.Properties)
             {
                 if (property.IsForeignKey())
                 {
                     if (!visited.Contains(property))
                     {
-                        IEnumerable<ForeignKey> foreignKeys = property.GetContainingForeignKeys();
+                        var foreignKeys = property.GetContainingForeignKeys().ToArray();
                         if (foreignKeys.Count() != 1)
                             throw new Exception("not supported");
 
-                        ForeignKey foreignKey = foreignKeys.First();
-                        foreach (Property prop in foreignKey.Properties)
+                        IForeignKey foreignKey = foreignKeys.First();
+                        foreach (IProperty prop in foreignKey.Properties)
                             visited.Add(prop);
 
-                        INavigation navigation = foreignKey.GetNavigations()
-                                                     .Where(n => n.DeclaringEntityType.ClrType == _entityType.ClrType)
-                                                     .Single();
+                        INavigation navigation = foreignKey
+                                                     .GetNavigations()
+                                                     .Single(n => n.DeclaringEntityType.ClrType == _entityType.ClrType);
 
                         IEntityType fkType = navigation.GetTargetType();
                         IKey fkKey = fkType.FindPrimaryKey();
 
                         List<IClrPropertyGetter> fkKeyGetters = new List<IClrPropertyGetter>();
-                        foreach (Property fkKeyProperty in fkKey.Properties)
+                        foreach (var fkKeyProperty in fkKey.Properties)
                         {
                             fkKeyGetters.Add(fkKeyProperty.GetGetter());
                             _keySize++;
@@ -124,7 +124,7 @@ namespace Detached.EntityFramework.Services
             ParameterExpression param = Expression.Parameter(_key.DeclaringEntityType.ClrType);
 
             foreach (KeyValue key in keys)
-            { 
+            {
                 Func<int, Expression> buildCompare = i =>
                 {
                     object keyValue = key.Values[i];

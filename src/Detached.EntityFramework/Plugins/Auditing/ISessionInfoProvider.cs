@@ -21,7 +21,7 @@ namespace Detached.EntityFramework.Plugins.Auditing
         /// centralized databases.
         /// </summary>
         /// <returns></returns>
-        DateTime GetCurrentDateTime(); 
+        DateTime GetCurrentDateTime();
     }
 
     public class DelegateSessionInfoProvider : ISessionInfoProvider
@@ -30,7 +30,7 @@ namespace Detached.EntityFramework.Plugins.Auditing
 
         public DelegateSessionInfoProvider(Func<string> getCurrentUser)
         {
-            _getCurrentUser = getCurrentUser; 
+            _getCurrentUser = getCurrentUser;
         }
 
         public string GetCurrentUser()
