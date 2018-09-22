@@ -6,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Detached.EntityFramework.Tests
 {
-    public class TestDbContext : DbContext
+    public class TestFluentDbContext : DbContext
     {
-        public DbSet<Entity> Entities { get; set; }
+        public DbSet<FluentEntity> Entities { get; set; }
 
         public DbSet<AssociatedReference> AssociatedReferences { get; set; }
 
@@ -37,6 +37,11 @@ namespace Detached.EntityFramework.Tests
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<FluentEntity>().ControlsOne(e => e.OwnedReference).WithOne();
+            modelBuilder.Entity<FluentEntity>().ControlsMany(e => e.OwnedList).WithOne();
+            modelBuilder.Entity<FluentEntity>().RefersOne(e => e.AssociatedReference).WithOne();
+            modelBuilder.Entity<FluentEntity>().RefersMany(e => e.AssociatedList).WithOne();
+
             base.OnModelCreating(modelBuilder);
         }
     }

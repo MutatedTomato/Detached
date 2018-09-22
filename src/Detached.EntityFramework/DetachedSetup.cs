@@ -113,7 +113,7 @@ namespace Detached.EntityFramework
         /// <param name="builder">The entity builder</param>
         /// <param name="navigationExpression">A property selector</param>
         /// <returns>A pre-configured collection builder</returns>
-        public static CollectionNavigationBuilder<TEntity, TRelatedEntity> OwnsMany<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> builder, Expression<Func<TEntity, IEnumerable<TRelatedEntity>>> navigationExpression = null)
+        public static CollectionNavigationBuilder<TEntity, TRelatedEntity> ControlsMany<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> builder, Expression<Func<TEntity, IEnumerable<TRelatedEntity>>> navigationExpression = null)
             where TEntity : class
             where TRelatedEntity : class
         {
@@ -132,7 +132,7 @@ namespace Detached.EntityFramework
         /// <param name="builder">The entity builder</param>
         /// <param name="navigationExpression">A property selector</param>
         /// <returns>A pre-configured reference builder</returns>
-        public static ReferenceNavigationBuilder<TEntity, TRelatedEntity> OwnsOne<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> builder, Expression<Func<TEntity, TRelatedEntity>> navigationExpression = null)
+        public static ReferenceNavigationBuilder<TEntity, TRelatedEntity> ControlsOne<TEntity, TRelatedEntity>(this EntityTypeBuilder<TEntity> builder, Expression<Func<TEntity, TRelatedEntity>> navigationExpression = null)
             where TEntity : class
             where TRelatedEntity : class
         {
@@ -158,7 +158,7 @@ namespace Detached.EntityFramework
             CollectionNavigationBuilder<TEntity, TRelatedEntity> navigationBuilder = builder.HasMany(navigationExpression);
             InternalRelationshipBuilder internalBuilder = navigationBuilder.GetInfrastructure();
 
-            internalBuilder.Metadata.SetAnnotation(typeof(AssociatedAttribute).FullName, new AssociatedAttribute(), ConfigurationSource.Explicit);
+            RunAttributeConvention(navigationBuilder.GetInfrastructure(), navigationExpression, new AssociatedNavigationAttributeConvention());
 
             return navigationBuilder;
         }

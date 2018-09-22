@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Detached.EntityFramework.Tests
 {
-    public class Entity
+    public class FluentEntity
     {
         [Key]
         public int Id { get; set; }
@@ -14,20 +14,16 @@ namespace Detached.EntityFramework.Tests
 
         [ForeignKey(nameof(OwnedReference))]
         public int? OwnedReferenceId { get; set; }
-
-        [Owned]
+        
         public OwnedReference OwnedReference { get; set; }
 
         [ForeignKey(nameof(AssociatedReference))]
         public int? AssociatedReferenceId { get; set; }
-
-        [Associated]
+        
         public AssociatedReference AssociatedReference { get; set; }
-
-        [Owned]
+        
         public IList<OwnedListItem> OwnedList { get; set; }
-
-        [Associated]
+        
         public IList<AssociatedListItem> AssociatedList { get; set; }
     }
 }
