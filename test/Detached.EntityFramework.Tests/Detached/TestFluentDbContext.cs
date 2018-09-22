@@ -31,7 +31,7 @@ namespace Detached.EntityFramework.Tests
                                          .BuildServiceProvider();
 
             optionsBuilder.UseInternalServiceProvider(serviceProvider)
-                          .UseInMemoryDatabase()
+                          .UseInMemoryDatabase("test")
                           .UseDetached(opts => opts.UseAuditing());
         }
 

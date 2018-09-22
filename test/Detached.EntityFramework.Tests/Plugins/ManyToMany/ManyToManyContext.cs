@@ -23,7 +23,7 @@ namespace Detached.EntityFramework.Tests.Plugins.ManyToMany
                                          .BuildServiceProvider();
 
             optionsBuilder.UseInternalServiceProvider(serviceProvider)
-                          .UseInMemoryDatabase()
+                          .UseInMemoryDatabase("test")
                           .UseDetached();
         }
     }

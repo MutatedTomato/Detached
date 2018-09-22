@@ -17,7 +17,7 @@ namespace Detached.EntityFramework.Tests.Plugins.Pagination
                                          .BuildServiceProvider();
 
             optionsBuilder.UseInternalServiceProvider(serviceProvider)
-                          .UseInMemoryDatabase()
+                          .UseInMemoryDatabase("test")
                           .UseDetached();
         }
     }

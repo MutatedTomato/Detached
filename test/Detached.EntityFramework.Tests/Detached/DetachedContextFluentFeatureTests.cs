@@ -118,7 +118,7 @@ namespace Detached.EntityFramework.Tests
 
                 // THEN the items is added to the the database.
                 FluentEntity persistedEntity = await detachedContext.Set<FluentEntity>().LoadAsync(1);
-                Assert.False(persistedEntity.OwnedList.Any(s => s.Name == "Owned Item A"));
+                Assert.Equal(1, context.OwnedListItems.Count());
                 Assert.True(persistedEntity.OwnedList.Any(s => s.Name == "Owned Item B"));
             }
         }
@@ -146,6 +146,7 @@ namespace Detached.EntityFramework.Tests
                 await detachedContext.SaveChangesAsync();
 
                 // THEN the owned reference is replaced, the old reference is deleted:
+                Assert.Equal(1, context.OwnedReferences.Count());
                 Assert.False(context.OwnedReferences.Any(o => o.Name == "Owned Reference 1"));
             }
         }
@@ -175,7 +176,7 @@ namespace Detached.EntityFramework.Tests
                 await detachedContext.SaveChangesAsync();
 
                 // THEN the owned reference is removed:
-                Assert.False(context.OwnedReferences.Any(o => o.Name == "Owned Reference 1"));
+                Assert.Equal(0, context.OwnedReferences.Count());
             }
         }
 
@@ -282,11 +283,10 @@ namespace Detached.EntityFramework.Tests
                 await detachedContext.SaveChangesAsync();
 
                 // THEN owned items are removed:
-                Assert.False(context.OwnedListItems.Any(e => e.Name == "Owned Item A"));
-                Assert.False(context.OwnedListItems.Any(e => e.Name == "Owned Item B"));
-                Assert.False(context.OwnedListItems.Any(e => e.Name == "Owned Item C"));
+                Assert.Equal(0, context.OwnedListItems.Count());
 
                 // and the associated items are not removed:
+                Assert.Equal(2, context.AssociatedListItems.Count());
                 Assert.True(context.AssociatedListItems.Any(e => e.Name == "Associated Item 1"));
                 Assert.True(context.AssociatedListItems.Any(e => e.Name == "Associated Item 2"));
             }
