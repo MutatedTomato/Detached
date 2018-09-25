@@ -64,9 +64,10 @@ namespace Detached.EntityFramework.Plugins.ManyToMany.Conventions
             Navigation end1Navigation = tableNavigations.Single(p => p.ClrType == parentEntityType.ClrType);
             Navigation end2Navigation = tableNavigations.Single(p => p.ClrType == collectionType);
 
-            tableNavigation.Owned(ConfigurationSource.DataAnnotation);
-            end1Navigation.Associated(ConfigurationSource.DataAnnotation);
-            end2Navigation.Associated(ConfigurationSource.DataAnnotation);
+            // setting annotations with ConfigurationSource.DataAnnotation to navigations in join tables will get removed when navigations are replaced when creating shadow foreign key in EF Core 2.1.1
+            tableNavigation.Owned(ConfigurationSource.Explicit);
+            end1Navigation.Associated(ConfigurationSource.Explicit);
+            end2Navigation.Associated(ConfigurationSource.Explicit);
 
             // if there is no FK, build one.
             if (tableEntityType.FindPrimaryKey() == null)
