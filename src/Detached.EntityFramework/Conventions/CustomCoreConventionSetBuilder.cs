@@ -12,7 +12,8 @@ namespace Detached.EntityFramework.Conventions
     {
         IEnumerable<ICustomConventionBuilder> _conventionBuilders;
 
-        public CustomCoreConventionSetBuilder(IServiceProvider serviceProvider)
+        public CustomCoreConventionSetBuilder(IServiceProvider serviceProvider,
+            CoreConventionSetBuilderDependencies dependecies) : base(dependecies)
         {
             _conventionBuilders = serviceProvider.GetServices<ICustomConventionBuilder>();
         }
@@ -21,7 +22,7 @@ namespace Detached.EntityFramework.Conventions
         {
             ConventionSet conventionSet = base.CreateConventionSet();
             conventionSet.NavigationAddedConventions.Add(new AssociatedNavigationAttributeConvention());
-            conventionSet.NavigationAddedConventions.Add(new OwnedNavigationAttributeConvention());         
+            conventionSet.NavigationAddedConventions.Add(new OwnedNavigationAttributeConvention());
             foreach (ICustomConventionBuilder conventionBuilder in _conventionBuilders)
             {
                 conventionBuilder.AddConventions(conventionSet);

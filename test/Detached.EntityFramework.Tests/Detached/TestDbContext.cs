@@ -37,7 +37,7 @@ namespace Detached.EntityFramework.Tests
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Entity>().OwnsOne(e => e.OwnedReference).WithOne();
+            modelBuilder.Entity<Entity>().OwnsOne(e => e.OwnedReference).HasOne<Entity>();
 
 
             base.OnModelCreating(modelBuilder);

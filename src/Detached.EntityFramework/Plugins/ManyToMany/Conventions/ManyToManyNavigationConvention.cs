@@ -57,10 +57,10 @@ namespace Detached.EntityFramework.Plugins.ManyToMany.Conventions
 
             // get the clr type of the intermediate entity.
             EntityType tableEntityType = tableNavigation.GetTargetType();
-            InternalEntityTypeBuilder tableBuilder = relationshipBuilder.ModelBuilder.Entity(tableEntityType.ClrType, ConfigurationSource.DataAnnotation, true);
+            InternalEntityTypeBuilder tableBuilder = relationshipBuilder.ModelBuilder.Entity(tableEntityType.ClrType, ConfigurationSource.DataAnnotation);
 
             // metadata for the intermediate table.
-            IEnumerable<Navigation> tableNavigations = tableEntityType.GetNavigations();
+            IEnumerable<Navigation> tableNavigations = tableEntityType.GetNavigations().ToArray();
             Navigation end1Navigation = tableNavigations.Single(p => p.ClrType == parentEntityType.ClrType);
             Navigation end2Navigation = tableNavigations.Single(p => p.ClrType == collectionType);
 

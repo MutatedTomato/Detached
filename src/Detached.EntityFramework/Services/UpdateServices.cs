@@ -50,8 +50,8 @@ namespace Detached.EntityFramework.Services
                 if (!(property.Metadata.FieldInfo == null ||
                       property.Metadata.IsPrimaryKey() ||
                       property.Metadata.IsForeignKey() ||
-                      property.Metadata.IsStoreGeneratedAlways ||
-                      property.Metadata.IsReadOnlyAfterSave ||
+                      property.Metadata.BeforeSaveBehavior == PropertySaveBehavior.Ignore ||//IsStoreGeneratedAlways ||
+                      property.Metadata.AfterSaveBehavior == PropertySaveBehavior.Throw ||//IsReadOnlyAfterSave ||
                       property.Metadata.IsIgnored()))
                 {
                     IClrPropertyGetter getter = property.Metadata.GetGetter();
@@ -99,7 +99,7 @@ namespace Detached.EntityFramework.Services
             persisted.State = EntityState.Added;
             visited.Add(persisted.Entity);
 
-            // trying to add an entity that has a primary key defined?. 
+            // trying to add an entity that has a primary key defined?.
             if (persisted.IsKeySet
                 && _options.ThrowExceptionOnEntityNotFound
                 && persisted.Properties.Where(p => p.Metadata.IsKey()).Any(p => p.Metadata.ValueGenerated != ValueGenerated.Never))
@@ -202,11 +202,9 @@ namespace Detached.EntityFramework.Services
 
         protected virtual EntityEntry Merge(object detached, object persisted, NavigationEntry parentNavigation, HashSet<object> visited)
         {
-            var args = _eventManager.OnEntityMerging(detached, persisted, parentNavigation);
+            _eventManager.OnEntityMerging(detached, persisted, parentNavigation);
 
-            EntityEntry persistedEntry = _entryServices.FindEntry(persisted);
-            if (persistedEntry == null)
-                persistedEntry = _dbContext.Entry(persisted);
+            EntityEntry persistedEntry = _entryServices.FindEntry(persisted) ?? _dbContext.Entry(persisted);
 
             visited.Add(persistedEntry.Entity);
 
@@ -236,16 +234,16 @@ namespace Detached.EntityFramework.Services
 
                     if (detachedValue != null)
                     {
-                        foreach (object detachedItem in (IEnumerable)detachedValue)
+                        foreach (var detachedItem in (IEnumerable)detachedValue)
                         {
                             object persistedItem;
                             KeyValue entityKey = entityServices.GetKeyValue(detachedItem);
+
                             if (dbTable.TryGetValue(entityKey, out persistedItem))
                             {
-                                if (owned)
-                                    mergedList.Add(Merge(detachedItem, persistedItem, navigationEntry, visited).Entity);
-                                else
-                                    mergedList.Add(persistedItem);
+                                mergedList.Add(owned
+                                    ? Merge(detachedItem, persistedItem, navigationEntry, visited).Entity
+                                    : persistedItem);
 
                                 dbTable.Remove(entityKey); // remove it from the table, to avoid deletion.
                             }
@@ -266,33 +264,41 @@ namespace Detached.EntityFramework.Services
                 }
                 else
                 {
-                    if (!visited.Contains(navigationEntry.CurrentValue)) // avoid stack overflow! (this might be also done checking if the property is dependent to parent)
+                    if (visited.Contains(navigationEntry.CurrentValue)) continue;
+
+                    if (entityServices.Equal(detachedValue, navigationEntry.CurrentValue))
                     {
-                        if (entityServices.Equal(detachedValue, navigationEntry.CurrentValue))
+                        // merge owned references and do nothing for associated references.
+                        if (owned)
+                            navigationEntry.CurrentValue = Merge(detachedValue, navigationEntry.CurrentValue, navigationEntry, visited).Entity;
+                    }
+                    else
+                    {
+                        if (navigationEntry.CurrentValue != null)
                         {
-                            // merge owned references and do nothing for associated references.
                             if (owned)
-                                navigationEntry.CurrentValue = Merge(detachedValue, navigationEntry.CurrentValue, navigationEntry, visited).Entity;
+                                Delete(navigationEntry.CurrentValue, navigationEntry, visited);
+                        }
+
+                        if (detachedValue != null)
+                        {
+                            navigationEntry.CurrentValue = owned ?
+                                Add(detachedValue, navigationEntry, visited).Entity :
+                                Attach(detachedValue, navigationEntry).Entity;
                         }
                         else
                         {
-                            if (navigationEntry.CurrentValue != null)
+                            // fix: if we use lazy loading we can delete correct value
+                            // for example: [FK] ItemId -> Item (is null)
+                            // ItemId = 1 (from RESTfull for example), Item = null
+                            var fk = navigationEntry.Metadata.ForeignKey?.Properties?.SingleOrDefault();
+                            var data = fk?.GetGetter().GetClrValue(detached);
+                            if (data != null && data.GetType().IsPrimitive && !data.GetType().IsDefaultValue(data))
                             {
-                                if (owned)
-                                    Delete(navigationEntry.CurrentValue, navigationEntry, visited);
+                                continue;
                             }
 
-                            if (detachedValue != null)
-                            {
-                                if (owned)
-                                    navigationEntry.CurrentValue = Add(detachedValue, navigationEntry, visited).Entity;
-                                else
-                                    navigationEntry.CurrentValue = Attach(detachedValue, navigationEntry).Entity;
-                            }
-                            else
-                            {
-                                navigationEntry.CurrentValue = null;
-                            }
+                            navigationEntry.CurrentValue = null;
                         }
                     }
                 }
