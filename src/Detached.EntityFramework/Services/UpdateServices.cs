@@ -292,10 +292,13 @@ namespace Detached.EntityFramework.Services
                             // for example: [FK] ItemId -> Item (is null)
                             // ItemId = 1 (from RESTfull for example), Item = null
                             var fk = navigationEntry.Metadata.ForeignKey?.Properties?.SingleOrDefault();
-                            var data = fk?.GetGetter().GetClrValue(detached);
-                            if (data != null && data.GetType().IsPrimitive && !data.GetType().IsDefaultValue(data))
+                            if (!fk.IsShadowProperty)
                             {
-                                continue;
+                                var data = fk?.GetGetter().GetClrValue(detached);
+                                if (data != null && data.GetType().IsPrimitive && !data.GetType().IsDefaultValue(data))
+                                {
+                                    continue;
+                                }
                             }
 
                             navigationEntry.CurrentValue = null;

@@ -20,6 +20,7 @@ namespace Detached.EntityFramework.Tests
                     new AssociatedListItem { Id = 2, Name = "Associated 2" }
                 });
                 detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 2, Name = "Associated 2" });
                 await detachedContext.DbContext.SaveChangesAsync();
 
                 // WHEN an entity is persisted:
@@ -32,12 +33,14 @@ namespace Detached.EntityFramework.Tests
                         new AssociatedListItem { Id = 2 }
                     },
                     AssociatedReference = new AssociatedReference { Id = 1 },
+                    AssociatedReferenceWithShadowKey = new AssociatedReference { Id = 2 },
                     OwnedList = new[]
                     {
                         new OwnedListItem { Name = "Owned 1" },
                         new OwnedListItem { Name = "Owned 2" }
                     },
-                    OwnedReference = new OwnedReference { Name = "Owned Reference 1" }
+                    OwnedReference = new OwnedReference { Name = "Owned Reference 1" },
+                    OwnedReferenceWithShadowKey = new OwnedReference { Name = "Owned Reference 2" },
                 });
                 await detachedContext.SaveChangesAsync();
 
@@ -46,8 +49,14 @@ namespace Detached.EntityFramework.Tests
                 Assert.NotNull(persisted);
                 Assert.Equal(2, persisted.AssociatedList.Count);
                 Assert.NotNull(persisted.AssociatedReference);
+                Assert.Equal(1, persisted.AssociatedReference.Id);
+                Assert.NotNull(persisted.AssociatedReferenceWithShadowKey);
+                Assert.Equal(2, persisted.AssociatedReferenceWithShadowKey.Id);
                 Assert.Equal(2, persisted.OwnedList.Count);
                 Assert.NotNull(persisted.OwnedReference);
+                Assert.Equal("Owned Reference 1", persisted.OwnedReference.Name);
+                Assert.NotNull(persisted.OwnedReferenceWithShadowKey);
+                Assert.Equal("Owned Reference 2", persisted.OwnedReferenceWithShadowKey.Name);
             }
         }
 
@@ -180,6 +189,64 @@ namespace Detached.EntityFramework.Tests
             }
         }
 
+
+        [Fact]
+        public async Task when_owned_reference_with_shadow_key_set_to_entity__entity_is_created()
+        {
+            using (TestDbContext context = new TestDbContext())
+            {
+                IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>(context);
+
+                // GIVEN an enity root with references:
+                context.Add(new Entity
+                {
+                    OwnedReference = new OwnedReference { Id = 1, Name = "Owned Reference 1" }
+                });
+                context.SaveChanges();
+
+                // WHEN the owned reference is set:
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
+                {
+                    Id = 1,
+                    OwnedReferenceWithShadowKey = new OwnedReference { Id = 2, Name = "Owned Reference 2" }
+                });
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the owned reference is replaced, the old reference is deleted:
+                Assert.Equal(1, context.OwnedReferences.Count());
+                Assert.False(context.OwnedReferences.Any(o => o.Name == "Owned Reference 1"));
+            }
+        }
+
+        [Fact]
+        public async Task when_owned_reference_with_shadow_key_set_to_null__entity_is_deleted()
+        {
+            using (TestDbContext context = new TestDbContext())
+            {
+                IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>(context);
+
+                // GIVEN an enity root with references:
+                context.Add(new Entity
+                {
+                    OwnedReference = new OwnedReference { Id = 1, Name = "Owned Reference 1" }
+                });
+                context.SaveChanges();
+
+                // WHEN the owned and the associated references are set to null:
+                Entity detachedEntity = new Entity
+                {
+                    Id = 1,
+                    OwnedReferenceWithShadowKey = null
+                };
+
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the owned reference is removed:
+                Assert.Equal(0, context.OwnedReferences.Count());
+            }
+        }
+
         [Fact]
         public async Task when_associated_reference_set_to_entity__entity_is_related_to_existing()
         {
@@ -289,6 +356,77 @@ namespace Detached.EntityFramework.Tests
                 Assert.Equal(2, context.AssociatedListItems.Count());
                 Assert.True(context.AssociatedListItems.Any(e => e.Name == "Associated Item 1"));
                 Assert.True(context.AssociatedListItems.Any(e => e.Name == "Associated Item 2"));
+            }
+        }
+        
+        [Fact]
+        public async Task when_associated_reference_with_shadow_key_set_to_entity__entity_is_related_to_existing()
+        {
+            using (TestDbContext context = new TestDbContext())
+            {
+                IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>(context);
+
+                // GIVEN an enity root with references:
+                AssociatedReference[] references = new[]
+                {
+                        new AssociatedReference { Id = 1, Name = "Associated Reference 1" },
+                        new AssociatedReference { Id = 2, Name = "Associated Reference 2" }
+                    };
+                context.AddRange(references);
+                context.Add(new Entity
+                {
+                    AssociatedReferenceWithShadowKey = references[0],
+                });
+                await context.SaveChangesAsync();
+
+                // WHEN the owned and the associated references are set to null:
+                Entity detachedEntity = new Entity
+                {
+                    Id = 1,
+                    AssociatedReferenceWithShadowKey = new AssociatedReference { Id = 1, Name = "Modified Associated Reference 1" },
+                };
+
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the associated reference still exsits:
+                Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
+            }
+        }
+
+        [Fact]
+        public async Task when_associated_reference_with_shadow_key_set_to_null__entity_is_preserved()
+        {
+            using (TestDbContext context = new TestDbContext())
+            {
+                IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>(context);
+
+                // GIVEN an enity root with references:
+                AssociatedReference[] references = new[]
+                {
+                        new AssociatedReference { Id = 1, Name = "Associated Reference 1" },
+                        new AssociatedReference { Id = 2, Name = "Associated Reference 2" }
+                    };
+                context.AddRange(references);
+                context.Add(new Entity
+                {
+                    AssociatedReferenceWithShadowKey = references[0],
+                });
+                context.SaveChanges();
+
+                // WHEN the owned and the associated references are set to null:
+                Entity detachedEntity = new Entity
+                {
+                    Id = 1,
+                    AssociatedReferenceWithShadowKey = null,
+                    OwnedReference = null
+                };
+
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the associated reference still exsits:
+                Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
             }
         }
 

@@ -18,11 +18,19 @@ namespace Detached.EntityFramework.Tests
         [Owned]
         public OwnedReference OwnedReference { get; set; }
 
+        [Owned]
+        [ForeignKey("OwnedReferenceWithShadowKeyId")]
+        public OwnedReference OwnedReferenceWithShadowKey { get; set; }
+
         [ForeignKey(nameof(AssociatedReference))]
         public int? AssociatedReferenceId { get; set; }
 
         [Associated]
         public AssociatedReference AssociatedReference { get; set; }
+
+        [Associated]
+        [ForeignKey("AssociatedReferenceWithShadowKeyId")]
+        public AssociatedReference AssociatedReferenceWithShadowKey { get; set; }
 
         [Owned]
         public IList<OwnedListItem> OwnedList { get; set; }

@@ -14,14 +14,20 @@ namespace Detached.EntityFramework.Tests
 
         [ForeignKey(nameof(OwnedReference))]
         public int? OwnedReferenceId { get; set; }
-        
+
         public OwnedReference OwnedReference { get; set; }
+
+        [ForeignKey("OwnedReferenceWithShadowKeyId")]
+        public OwnedReference OwnedReferenceWithShadowKey { get; set; }
 
         [ForeignKey(nameof(AssociatedReference))]
         public int? AssociatedReferenceId { get; set; }
-        
+
         public AssociatedReference AssociatedReference { get; set; }
-        
+
+        [ForeignKey("AssociatedReferenceWithShadowKeyId")]
+        public AssociatedReference AssociatedReferenceWithShadowKey { get; set; }
+
         public IList<OwnedListItem> OwnedList { get; set; }
         
         public IList<AssociatedListItem> AssociatedList { get; set; }
