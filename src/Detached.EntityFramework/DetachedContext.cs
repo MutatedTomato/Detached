@@ -147,6 +147,20 @@ namespace Detached.EntityFramework
             return Set(setType);
         }
 
+        public virtual int SaveChanges()
+        {
+            // temporally disabled autodetect changes
+            bool autoDetectChanges = _dbContext.ChangeTracker.AutoDetectChangesEnabled;
+            _dbContext.ChangeTracker.AutoDetectChangesEnabled = false;
+
+            int result = _dbContext.SaveChanges();
+
+            // re-enable autodetect changes.
+            _dbContext.ChangeTracker.AutoDetectChangesEnabled = autoDetectChanges;
+
+            return result;
+        }
+
         public virtual async Task<int> SaveChangesAsync()
         {
             // temporally disabled autodetect changes

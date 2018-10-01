@@ -87,6 +87,22 @@ namespace Detached.EntityFramework.Services
                 paths.Add(currentPath.TrimStart('.'));
             }
         }
+        
+        public virtual TEntity Load<TEntity>(params object[] keyValues)
+            where TEntity : class
+        {
+            IEntityServices<TEntity> entityServices = _entityServicesFactory.GetEntityServices<TEntity>();
+            Expression<Func<TEntity, bool>> keyFilter = entityServices.CreateFindByKeyExpression(keyValues);
+
+            IQueryable<TEntity> query = GetBaseQuery<TEntity>().AsNoTracking();
+            query = (IQueryable<TEntity>)_eventManager.OnRootLoading(query, _dbContext).Queryable;
+
+            TEntity entity = query.SingleOrDefault(keyFilter);
+            if (entity != null)
+                _eventManager.OnRootLoaded(entity, _dbContext);
+
+            return entity;
+        }
 
         public virtual async Task<TEntity> LoadAsync<TEntity>(params object[] keyValues)
             where TEntity : class
@@ -102,6 +118,22 @@ namespace Detached.EntityFramework.Services
                 _eventManager.OnRootLoaded(entity, _dbContext);
 
             return entity;
+        }
+        
+        public virtual List<TResult> Load<TEntity, TResult>(Func<IQueryable<TEntity>, IQueryable<TResult>> queryConfig)
+            where TEntity : class
+            where TResult : class
+        {
+            IQueryable<TEntity> query = GetBaseQuery<TEntity>().AsNoTracking();
+            IQueryable<TResult> configQuery = queryConfig?.Invoke(query);
+
+            configQuery = (IQueryable<TResult>)_eventManager.OnRootLoading(configQuery, _dbContext).Queryable;
+
+            List<TResult> entities = configQuery.ToList();
+            for (int i = 0; i < entities.Count; i++)
+                entities[i] = (TResult)_eventManager.OnRootLoaded(entities[i], _dbContext).Root;
+
+            return entities;
         }
 
         public virtual async Task<List<TResult>> LoadAsync<TEntity, TResult>(Func<IQueryable<TEntity>, IQueryable<TResult>> queryConfig)
@@ -119,21 +151,55 @@ namespace Detached.EntityFramework.Services
 
             return entities;
         }
+        
+        public virtual List<TEntity> Load<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryConfig)
+            where TEntity : class
+        {
+            return Load<TEntity, TEntity>(queryConfig);
+        }
 
         public virtual async Task<List<TEntity>> LoadAsync<TEntity>(Func<IQueryable<TEntity>, IQueryable<TEntity>> queryConfig)
             where TEntity : class
         {
             return await LoadAsync<TEntity, TEntity>(queryConfig);
         }
-
-        public async Task<TEntity> LoadPersisted<TEntity>(TEntity entity)
+        
+        public TEntity LoadPersisted<TEntity>(TEntity entity)
             where TEntity : class
         {
             IEntityServices<TEntity> entityServices = _entityServicesFactory.GetEntityServices<TEntity>();
-            return (await LoadPersisted<TEntity>(new[] { entityServices.GetKeyValue(entity) })).FirstOrDefault();
+            return (LoadPersisted<TEntity>(new[] { entityServices.GetKeyValue(entity) })).FirstOrDefault();
         }
 
-        public async Task<IList<TEntity>> LoadPersisted<TEntity>(KeyValue[] keys)
+        public async Task<TEntity> LoadPersistedAsync<TEntity>(TEntity entity)
+            where TEntity : class
+        {
+            IEntityServices<TEntity> entityServices = _entityServicesFactory.GetEntityServices<TEntity>();
+            return (await LoadPersistedAsync<TEntity>(new[] { entityServices.GetKeyValue(entity) })).FirstOrDefault();
+        }
+        
+        public IList<TEntity> LoadPersisted<TEntity>(KeyValue[] keys)
+            where TEntity : class
+        {
+            IEntityServices<TEntity> entityServices = _entityServicesFactory.GetEntityServices<TEntity>();
+            Expression<Func<TEntity, bool>> keyFilter = entityServices.CreateFilterByKeysExpression(keys);
+
+            IQueryable<TEntity> query = GetBaseQuery<TEntity>().AsTracking().Where(keyFilter);
+            query = (IQueryable<TEntity>)_eventManager.OnRootLoading(query, _dbContext).Queryable;
+
+            IList<TEntity> persisted = query.ToList();
+            if (persisted != null)
+            {
+                for (int i = 0; i < persisted.Count; i++)
+                {
+                    persisted[i] = (TEntity)_eventManager.OnRootLoaded(persisted[i], _dbContext).Root;
+                }
+            }
+
+            return persisted;
+        }
+
+        public async Task<IList<TEntity>> LoadPersistedAsync<TEntity>(KeyValue[] keys)
             where TEntity : class
         {
             IEntityServices<TEntity> entityServices = _entityServicesFactory.GetEntityServices<TEntity>();

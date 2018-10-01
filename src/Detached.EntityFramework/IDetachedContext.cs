@@ -53,6 +53,13 @@ namespace Detached.EntityFramework
         IDetachedSet Set(string propertyName, bool throwIfNotFound = true);
 
         /// <summary>
+        /// Save the context changes to the database.
+        /// (This version of SaveChangesAsync disables automatic change tracking. Using SaveChangesAsync from 
+        /// the underlying DbContext may lead to unexpected behaviour).
+        /// </summary>
+        int SaveChanges();
+
+        /// <summary>
         /// Asynchronously save the context changes to the database.
         /// (This version of SaveChangesAsync disables automatic change tracking. Using SaveChangesAsync from 
         /// the underlying DbContext may lead to unexpected behaviour).

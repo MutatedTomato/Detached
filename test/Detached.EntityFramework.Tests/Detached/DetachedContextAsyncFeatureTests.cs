@@ -6,10 +6,10 @@ using Xunit;
 
 namespace Detached.EntityFramework.Tests
 {
-    public class DetachedContextFeatureTests
+    public class DetachedContextAsyncFeatureTests
     {
         [Fact]
-        public void when_root_persisted__children_are_persisted()
+        public async Task when_root_persisted__children_are_persisted()
         {
             using (IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>())
             {
@@ -21,10 +21,10 @@ namespace Detached.EntityFramework.Tests
                 });
                 detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
                 detachedContext.DbContext.Add(new AssociatedReference { Id = 2, Name = "Associated 2" });
-                detachedContext.DbContext.SaveChanges();
+                await detachedContext.DbContext.SaveChangesAsync();
 
                 // WHEN an entity is persisted:
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Name = "Test entity",
                     AssociatedList = new[]
@@ -42,10 +42,10 @@ namespace Detached.EntityFramework.Tests
                     OwnedReference = new OwnedReference { Name = "Owned Reference 1" },
                     OwnedReferenceWithShadowKey = new OwnedReference { Name = "Owned Reference 2" },
                 });
-                detachedContext.SaveChanges();
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the entity should be loaded correctly:
-                Entity persisted = detachedContext.Set<Entity>().Load("1");
+                Entity persisted = await detachedContext.Set<Entity>().LoadAsync("1");
                 Assert.NotNull(persisted);
                 Assert.Equal(2, persisted.AssociatedList.Count);
                 Assert.NotNull(persisted.AssociatedReference);
@@ -61,7 +61,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_add_item_to_collection__item_is_created()
+        public async Task when_add_item_to_collection__item_is_created()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -86,18 +86,18 @@ namespace Detached.EntityFramework.Tests
                     }
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the items is added to the the database.
-                Entity persistedEntity =  detachedContext.Set<Entity>().Load(1);
+                Entity persistedEntity = await detachedContext.Set<Entity>().LoadAsync(1);
                 Assert.True(persistedEntity.OwnedList.Any(s => s.Name == "Owned Item A"));
                 Assert.True(persistedEntity.OwnedList.Any(s => s.Name == "Owned Item B"));
             }
         }
 
         [Fact]
-        public void when_remove_item_from_owned_collection__item_is_deleted()
+        public async Task when_remove_item_from_owned_collection__item_is_deleted()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -122,18 +122,18 @@ namespace Detached.EntityFramework.Tests
                         }
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the items is added to the the database.
-                Entity persistedEntity =  detachedContext.Set<Entity>().Load(1);
+                Entity persistedEntity = await detachedContext.Set<Entity>().LoadAsync(1);
                 Assert.Equal(1, context.OwnedListItems.Count());
                 Assert.True(persistedEntity.OwnedList.Any(s => s.Name == "Owned Item B"));
             }
         }
 
         [Fact]
-        public void when_owned_reference_set_to_entity__entity_is_created()
+        public async Task when_owned_reference_set_to_entity__entity_is_created()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -147,12 +147,12 @@ namespace Detached.EntityFramework.Tests
                 context.SaveChanges();
 
                 // WHEN the owned reference is set:
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Id = 1,
                     OwnedReference = new OwnedReference { Id = 2, Name = "Owned Reference 2" }
                 });
-                detachedContext.SaveChanges();
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the owned reference is replaced, the old reference is deleted:
                 Assert.Equal(1, context.OwnedReferences.Count());
@@ -161,7 +161,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_owned_reference_set_to_null__entity_is_deleted()
+        public async Task when_owned_reference_set_to_null__entity_is_deleted()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -181,8 +181,8 @@ namespace Detached.EntityFramework.Tests
                     OwnedReference = null
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the owned reference is removed:
                 Assert.Equal(0, context.OwnedReferences.Count());
@@ -191,7 +191,7 @@ namespace Detached.EntityFramework.Tests
 
 
         [Fact]
-        public void when_owned_reference_with_shadow_key_set_to_entity__entity_is_created()
+        public async Task when_owned_reference_with_shadow_key_set_to_entity__entity_is_created()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -205,12 +205,12 @@ namespace Detached.EntityFramework.Tests
                 context.SaveChanges();
 
                 // WHEN the owned reference is set:
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Id = 1,
                     OwnedReferenceWithShadowKey = new OwnedReference { Id = 2, Name = "Owned Reference 2" }
                 });
-                detachedContext.SaveChanges();
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the owned reference is replaced, the old reference is deleted:
                 Assert.Equal(1, context.OwnedReferences.Count());
@@ -219,7 +219,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_owned_reference_with_shadow_key_set_to_null__entity_is_deleted()
+        public async Task when_owned_reference_with_shadow_key_set_to_null__entity_is_deleted()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -239,8 +239,8 @@ namespace Detached.EntityFramework.Tests
                     OwnedReferenceWithShadowKey = null
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the owned reference is removed:
                 Assert.Equal(0, context.OwnedReferences.Count());
@@ -248,7 +248,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_associated_reference_set_to_entity__entity_is_related_to_existing()
+        public async Task when_associated_reference_set_to_entity__entity_is_related_to_existing()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -265,7 +265,7 @@ namespace Detached.EntityFramework.Tests
                 {
                     AssociatedReference = references[0],
                 });
-                context.SaveChanges();
+                await context.SaveChangesAsync();
 
                 // WHEN the owned and the associated references are set to null:
                 Entity detachedEntity = new Entity
@@ -274,8 +274,8 @@ namespace Detached.EntityFramework.Tests
                     AssociatedReference = new AssociatedReference { Id = 1, Name = "Modified Associated Reference 1" },
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the associated reference still exsits:
                 Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
@@ -283,7 +283,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_associated_reference_set_to_null__entity_is_preserved()
+        public async Task when_associated_reference_set_to_null__entity_is_preserved()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -310,8 +310,8 @@ namespace Detached.EntityFramework.Tests
                     OwnedReference = null
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the associated reference still exsits:
                 Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
@@ -319,7 +319,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_entity_deleted__owned_properties_are_deleted()
+        public async Task when_entity_deleted__owned_properties_are_deleted()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -332,7 +332,7 @@ namespace Detached.EntityFramework.Tests
                     new AssociatedListItem { Name = "Associated Item 2" }
                 });
                 context.AddRange(associatedItems);
-                context.SaveChanges();
+                await context.SaveChangesAsync();
 
                 context.Add(new Entity
                 {
@@ -346,8 +346,8 @@ namespace Detached.EntityFramework.Tests
                 context.SaveChanges();
 
                 // WHEN the entity is deleted:
-                detachedContext.Set<Entity>().Delete(1);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().DeleteAsync(1);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN owned items are removed:
                 Assert.Equal(0, context.OwnedListItems.Count());
@@ -360,7 +360,7 @@ namespace Detached.EntityFramework.Tests
         }
         
         [Fact]
-        public void when_associated_reference_with_shadow_key_set_to_entity__entity_is_related_to_existing()
+        public async Task when_associated_reference_with_shadow_key_set_to_entity__entity_is_related_to_existing()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -377,7 +377,7 @@ namespace Detached.EntityFramework.Tests
                 {
                     AssociatedReferenceWithShadowKey = references[0],
                 });
-                context.SaveChanges();
+                await context.SaveChangesAsync();
 
                 // WHEN the owned and the associated references are set to null:
                 Entity detachedEntity = new Entity
@@ -386,8 +386,8 @@ namespace Detached.EntityFramework.Tests
                     AssociatedReferenceWithShadowKey = new AssociatedReference { Id = 1, Name = "Modified Associated Reference 1" },
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the associated reference still exsits:
                 Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
@@ -395,7 +395,7 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_associated_reference_with_shadow_key_set_to_null__entity_is_preserved()
+        public async Task when_associated_reference_with_shadow_key_set_to_null__entity_is_preserved()
         {
             using (TestDbContext context = new TestDbContext())
             {
@@ -422,8 +422,8 @@ namespace Detached.EntityFramework.Tests
                     OwnedReference = null
                 };
 
-                detachedContext.Set<Entity>().Update(detachedEntity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().UpdateAsync(detachedEntity);
+                await detachedContext.SaveChangesAsync();
 
                 // THEN the associated reference still exsits:
                 Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
@@ -431,29 +431,29 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_load_by_key__type_conversion_is_made()
+        public async Task when_load_by_key__type_conversion_is_made()
         {
             using (TestDbContext context = new TestDbContext())
             {
                 IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>(context);
 
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Name = "Test entity"
                 });
-                detachedContext.SaveChanges();
+                await detachedContext.SaveChangesAsync();
 
 
-                Entity persisted = detachedContext.Set<Entity>().Load("1");
+                Entity persisted = await detachedContext.Set<Entity>().LoadAsync("1");
                 Assert.NotNull(persisted);
 
-                persisted = detachedContext.Set<Entity>().Load(1);
+                persisted = await detachedContext.Set<Entity>().LoadAsync(1);
                 Assert.NotNull(persisted);
             }
         }
 
         [Fact]
-        public void when_load_sorted__result_is_ordered()
+        public async Task when_load_sorted__result_is_ordered()
         {
             using (TestDbContext dbContext = new TestDbContext())
             {
@@ -464,12 +464,12 @@ namespace Detached.EntityFramework.Tests
                     new Entity { Name = "Order By Entity 1" },
                     new Entity { Name = "Order By Entity 3" }
                 });
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             }
         }
 
         [Fact]
-        public void when_2_entities_same_type_persisted_values_are_updated()
+        public async Task when_2_entities_same_type_persisted_values_are_updated()
         {
             TwoReferencesSameTypeEntity entity = new TwoReferencesSameTypeEntity();
             entity.ReferenceA = new TwoReferencesSameTypeReference
@@ -505,10 +505,10 @@ namespace Detached.EntityFramework.Tests
 
             using (IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>())
             {
-                detachedContext.Set<TwoReferencesSameTypeEntity>().Update(entity);
-                detachedContext.SaveChanges();
+                await detachedContext.Set<TwoReferencesSameTypeEntity>().UpdateAsync(entity);
+                await detachedContext.SaveChangesAsync();
 
-                TwoReferencesSameTypeEntity entity2 = detachedContext.Set<TwoReferencesSameTypeEntity>().Load(1);
+                TwoReferencesSameTypeEntity entity2 = await detachedContext.Set<TwoReferencesSameTypeEntity>().LoadAsync(1);
 
                 Assert.Equal("Reference A Item 1", entity2.ReferenceA.Items[0].Name);
                 Assert.Equal("Reference A Item 2", entity2.ReferenceA.Items[1].Name);
@@ -525,36 +525,36 @@ namespace Detached.EntityFramework.Tests
         }
 
         [Fact]
-        public void when_deleting_multiple_ids__entities_are_deleted()
+        public async Task when_deleting_multiple_ids__entities_are_deleted()
         {
             using (TestDbContext context = new TestDbContext())
             {
                 // GIVEN: 3 entities
                 IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>(context);
 
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Name = "Entity 1"
                 });
 
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Name = "Entity 2"
                 });
 
-                detachedContext.Set<Entity>().Update(new Entity
+                await detachedContext.Set<Entity>().UpdateAsync(new Entity
                 {
                     Name = "Entity 3"
                 });
 
-                detachedContext.SaveChanges();
+                await detachedContext.SaveChangesAsync();
 
                 List<Entity> all = context.Entities.ToList();
                 Assert.Equal(3, all.Count);
 
                 // WHEN: two are deleted in batch
-                detachedContext.Set<Entity>().Delete(new KeyValue(1), new KeyValue(2));
-                detachedContext.SaveChanges();
+                await detachedContext.Set<Entity>().DeleteAsync(new KeyValue(1), new KeyValue(2));
+                await detachedContext.SaveChangesAsync();
 
                 // THEN: only one remains
                 all = context.Entities.ToList();
