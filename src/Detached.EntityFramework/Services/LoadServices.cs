@@ -57,7 +57,12 @@ namespace Detached.EntityFramework.Services
         public virtual void GetIncludePaths( IEntityType entityType, string currentPath, ref List<string> paths)
         {
             // gets a list of navigations.
-            var navs = entityType.GetNavigations()
+            var navigations = entityType.GetNavigations().ToList();
+            foreach (var type in entityType.GetDerivedTypes())
+            {
+                navigations.AddRange(type.GetNavigations());
+            }
+            var navs = navigations
                                  .Select(n => new
                                  {
                                      Navigation = n,

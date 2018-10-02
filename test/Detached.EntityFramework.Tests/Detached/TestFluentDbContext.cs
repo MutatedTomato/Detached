@@ -2,6 +2,7 @@
 using Detached.EntityFramework.Plugins.Auditing;
 using Detached.EntityFramework.Tests.Plugins.Auditing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Detached.EntityFramework.Tests
@@ -19,7 +20,7 @@ namespace Detached.EntityFramework.Tests
         public DbSet<AssociatedListItem> AssociatedListItems { get; set; }
 
         public DbSet<TwoReferencesSameTypeEntity> TwoReferencesEntity { get; set; }
-
+        
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
@@ -29,7 +30,7 @@ namespace Detached.EntityFramework.Tests
                                          .AddDetachedEntityFramework()
                                          .AddSingleton<ISessionInfoProvider>(SessionInfoProvider.Default)
                                          .BuildServiceProvider();
-
+            
             optionsBuilder.UseInternalServiceProvider(serviceProvider)
                           .UseInMemoryDatabase("test")
                           .UseDetached(opts => opts.UseAuditing());
@@ -44,6 +45,9 @@ namespace Detached.EntityFramework.Tests
             modelBuilder.Entity<FluentEntity>().RefersOne(e => e.AssociatedReferenceWithShadowKey).WithOne();
             modelBuilder.Entity<FluentEntity>().RefersMany(e => e.AssociatedList).WithOne();
 
+            modelBuilder.Entity<DerivedFluentEntity>().HasBaseType<FluentEntity>();
+            modelBuilder.Entity<DerivedFluentEntity>().ControlsOne(e => e.DerivedOwnedReference).WithOne();
+            
             base.OnModelCreating(modelBuilder);
         }
     }

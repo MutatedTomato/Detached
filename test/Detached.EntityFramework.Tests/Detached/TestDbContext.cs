@@ -37,6 +37,8 @@ namespace Detached.EntityFramework.Tests
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<DerivedEntity>().HasBaseType<Entity>();
+
             base.OnModelCreating(modelBuilder);
         }
     }

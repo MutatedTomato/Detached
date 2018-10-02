@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -57,6 +58,61 @@ namespace Detached.EntityFramework.Tests
                 Assert.Equal("Owned Reference 1", persisted.OwnedReference.Name);
                 Assert.NotNull(persisted.OwnedReferenceWithShadowKey);
                 Assert.Equal("Owned Reference 2", persisted.OwnedReferenceWithShadowKey.Name);
+            }
+        }
+        
+        [Fact]
+        public async Task when_derived_root_persisted__children_are_persisted()
+        {
+            using (IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>())
+            {
+                // GIVEN a context:
+                detachedContext.DbContext.AddRange(new[]
+                {
+                    new AssociatedListItem { Id = 1, Name = "Associated 1" },
+                    new AssociatedListItem { Id = 2, Name = "Associated 2" }
+                });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 2, Name = "Associated 2" });
+                await detachedContext.DbContext.SaveChangesAsync();
+
+                // WHEN an entity is persisted:
+                await detachedContext.Set<Entity>().UpdateAsync(new DerivedEntity
+                {
+                    Name = "Test entity",
+                    AssociatedList = new[]
+                    {
+                        new AssociatedListItem { Id = 1, Name = "Sarlanga" },
+                        new AssociatedListItem { Id = 2 }
+                    },
+                    AssociatedReference = new AssociatedReference { Id = 1 },
+                    AssociatedReferenceWithShadowKey = new AssociatedReference { Id = 2 },
+                    OwnedList = new[]
+                    {
+                        new OwnedListItem { Name = "Owned 1" },
+                        new OwnedListItem { Name = "Owned 2" }
+                    },
+                    OwnedReference = new OwnedReference { Name = "Owned Reference 1" },
+                    OwnedReferenceWithShadowKey = new OwnedReference { Name = "Owned Reference 2" },
+                    DerivedOwnedReference = new OwnedReference { Name = "Derived Owned Reference" },
+                });
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the entity should be loaded correctly:
+                Entity persisted = await detachedContext.Set<Entity>().GetBaseQuery().AsNoTracking().FirstAsync(e => e.Id == 1);
+                Assert.NotNull(persisted);
+                Assert.Equal(2, persisted.AssociatedList.Count);
+                Assert.NotNull(persisted.AssociatedReference);
+                Assert.Equal(1, persisted.AssociatedReference.Id);
+                Assert.NotNull(persisted.AssociatedReferenceWithShadowKey);
+                Assert.Equal(2, persisted.AssociatedReferenceWithShadowKey.Id);
+                Assert.Equal(2, persisted.OwnedList.Count);
+                Assert.NotNull(persisted.OwnedReference);
+                Assert.Equal("Owned Reference 1", persisted.OwnedReference.Name);
+                Assert.NotNull(persisted.OwnedReferenceWithShadowKey);
+                Assert.Equal("Owned Reference 2", persisted.OwnedReferenceWithShadowKey.Name);
+                Assert.NotNull(((DerivedEntity)persisted).DerivedOwnedReference);
+                Assert.Equal(3, ((DerivedEntity)persisted).DerivedOwnedReference.Id);
             }
         }
 
