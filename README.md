@@ -7,6 +7,9 @@ If you'd like to participate or need some support, please drop me an email: mail
 or [fork me on github](https://github.com/leonardoporro/Detached/fork).
 Thanks in advance for your help!
 
+# EntityFrameworkCore Compatibility
+2.1.3 was tested. 1.x are incompatible.
+
 # Detached.EntityFramework
 Allows loading and saving entire entity graphs (the entity with its children/relations) at once and without extra code.
 
@@ -29,10 +32,7 @@ Currently building Angular2 and MVC demos.
 
 # Build
 To build the project, you need:
- - Microsoft Visual Studio 2015 Update 3
- - .NET Core 1.0.1 Tools Preview 2
-https://www.microsoft.com/net/core#windowsvs2015
-
-Unit tests depend on Moq beta. Please, in VS2015, go to Tools->Options, look for Nuget Package manager 
-and add this source:
-https://www.myget.org/F/aspnet-contrib/api/v3/index.json
+ - Microsoft Visual Studio 2017
+ - .Net Standard 2.0 compatible environments for the libraries
+ - .Net Core 2.1 for the tests and the demos  
+ https://www.microsoft.com/net/download/dotnet-core/2.1
