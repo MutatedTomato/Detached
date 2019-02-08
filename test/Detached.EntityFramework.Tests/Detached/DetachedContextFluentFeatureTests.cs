@@ -443,6 +443,112 @@ namespace Detached.EntityFramework.Tests
                 Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
             }
         }
+
+        [Fact]
+        public async Task when_associalted_children_are_updated_then_root_is_updated()
+        {
+            using (IDetachedContext<TestFluentDbContext> detachedContext = new DetachedContext<TestFluentDbContext>())
+            {
+                // GIVEN a context:
+                detachedContext.DbContext.AddRange(new[]
+                {
+                    new AssociatedListItem { Id = 1, Name = "Associated 1" },
+                    new AssociatedListItem { Id = 2, Name = "Associated 2" }
+                });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 2, Name = "Associated 2" });
+                detachedContext.DbContext.Add(new FluentEntity
+                {
+                    Name = "Test entity",
+                    Id = 1,
+                });
+                await detachedContext.DbContext.SaveChangesAsync();
+
+                // WHEN the entity and associated children are updated
+                await detachedContext.Set<AssociatedReference>().UpdateAsync(new AssociatedReference
+                {
+                    Id = 1,
+                    Name = "Associated 1 updated",
+                });
+                await detachedContext.Set<AssociatedReference>().UpdateAsync(new AssociatedReference
+                {
+                    Id = 2,
+                    Name = "Associated 2 updated",
+                });
+                await detachedContext.Set<AssociatedListItem>().UpdateAsync(new AssociatedListItem
+                {
+                    Id = 1,
+                    Name = "Associated 1 updated",
+                });
+                await detachedContext.Set<FluentEntity>().UpdateAsync(new FluentEntity
+                {
+                    Id = 1,
+                    Name = "Test entity updated",
+                    AssociatedList = new[]
+                    {
+                        new AssociatedListItem { Id = 1 },
+                        new AssociatedListItem { Id = 2 }
+                    },
+                    AssociatedReference = new AssociatedReference { Id = 1 },
+                    AssociatedReferenceWithShadowKey = new AssociatedReference { Id = 2 },
+                });
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the entity should be loaded correctly:
+                FluentEntity persisted = await detachedContext.Set<FluentEntity>().LoadAsync("1");
+                Assert.NotNull(persisted);
+                Assert.Equal("Test entity updated", persisted.Name);
+                Assert.Equal(2, persisted.AssociatedList.Count);
+                Assert.NotNull(persisted.AssociatedList.FirstOrDefault(a => a.Id == 1));
+                Assert.Equal("Associated 1 updated", persisted.AssociatedList.First(a => a.Id == 1).Name);
+                Assert.NotNull(persisted.AssociatedReference);
+                Assert.Equal(1, persisted.AssociatedReference.Id);
+                Assert.Equal("Associated 1 updated", persisted.AssociatedReference.Name);
+                Assert.NotNull(persisted.AssociatedReferenceWithShadowKey);
+                Assert.Equal(2, persisted.AssociatedReferenceWithShadowKey.Id);
+                Assert.Equal("Associated 2 updated", persisted.AssociatedReferenceWithShadowKey.Name);
+            }
+        }
+
+        [Fact]
+        public async Task when_root_is_updated_then_associalted_child_is_updated()
+        {
+            using (IDetachedContext<TestFluentDbContext> detachedContext = new DetachedContext<TestFluentDbContext>())
+            {
+                // GIVEN a context:
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
+                detachedContext.DbContext.Add(new FluentEntity
+                {
+                    Name = "Test entity",
+                    Id = 1,
+                });
+                await detachedContext.DbContext.SaveChangesAsync();
+
+                //WHEN the entity and associated child are updated
+                var associated = new AssociatedReference { Id = 1, Name = "child" };
+                await detachedContext.Set<FluentEntity>().UpdateAsync(new FluentEntity
+                {
+                    Id = 1,
+                    AssociatedReference = associated,
+                });
+
+                await detachedContext.Set<AssociatedReference>().UpdateAsync(new AssociatedReference()
+                {
+                    Id = 1,
+                    Name = "Associated 1 updated",
+                });
+                await detachedContext.SaveChangesAsync();
+
+                // THEN the entity should be loaded correctly:
+                Assert.Equal(1, detachedContext.DbContext.AssociatedReferences.Count());
+                FluentEntity persisted = await detachedContext.Set<FluentEntity>().LoadAsync("1");
+                Assert.NotNull(persisted);
+                Assert.NotNull(persisted.AssociatedReference);
+                Assert.Equal(1, persisted.AssociatedReference.Id);
+                Assert.Equal("Associated 1 updated", persisted.AssociatedReference.Name);
+            }
+        }
+
         [Fact]
         public async Task when_entity_deleted__owned_properties_are_deleted()
         {

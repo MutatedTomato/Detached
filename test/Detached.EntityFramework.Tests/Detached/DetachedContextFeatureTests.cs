@@ -62,7 +62,7 @@ namespace Detached.EntityFramework.Tests
         }
         
         [Fact]
-        public async Task when_derived_root_persisted__children_are_persisted()
+        public void when_derived_root_persisted__children_are_persisted()
         {
             using (IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>())
             {
@@ -74,10 +74,10 @@ namespace Detached.EntityFramework.Tests
                 });
                 detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
                 detachedContext.DbContext.Add(new AssociatedReference { Id = 2, Name = "Associated 2" });
-                await detachedContext.DbContext.SaveChangesAsync();
+                detachedContext.DbContext.SaveChanges();
 
                 // WHEN an entity is persisted:
-                await detachedContext.Set<Entity>().UpdateAsync(new DerivedEntity
+                detachedContext.Set<Entity>().Update(new DerivedEntity
                 {
                     Name = "Test entity",
                     AssociatedList = new[]
@@ -96,10 +96,10 @@ namespace Detached.EntityFramework.Tests
                     OwnedReferenceWithShadowKey = new OwnedReference { Name = "Owned Reference 2" },
                     DerivedOwnedReference = new OwnedReference { Name = "Derived Owned Reference" },
                 });
-                await detachedContext.SaveChangesAsync();
+                detachedContext.SaveChanges();
 
                 // THEN the entity should be loaded correctly:
-                Entity persisted = await detachedContext.Set<Entity>().GetBaseQuery().AsNoTracking().FirstAsync(e => e.Id == 1);
+                Entity persisted = detachedContext.Set<Entity>().GetBaseQuery().AsNoTracking().First(e => e.Id == 1);
                 Assert.NotNull(persisted);
                 Assert.Equal(2, persisted.AssociatedList.Count);
                 Assert.NotNull(persisted.AssociatedReference);
@@ -483,6 +483,112 @@ namespace Detached.EntityFramework.Tests
 
                 // THEN the associated reference still exsits:
                 Assert.True(context.AssociatedReferences.Any(a => a.Name == "Associated Reference 1"));
+            }
+        }
+        
+        [Fact]
+        public void when_associalted_children_are_updated_then_root_is_updated()
+        {
+            using (IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>())
+            {
+                // GIVEN a context:
+                detachedContext.DbContext.AddRange(new[]
+                {
+                    new AssociatedListItem { Id = 1, Name = "Associated 1" },
+                    new AssociatedListItem { Id = 2, Name = "Associated 2" }
+                });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 2, Name = "Associated 2" });
+                detachedContext.DbContext.Add(new Entity
+                {
+                    Name = "Test entity",
+                    Id = 1,
+                });
+                detachedContext.DbContext.SaveChanges();
+
+                // WHEN the entity and associated children are updated
+                detachedContext.Set<AssociatedReference>().Update(new AssociatedReference
+                {
+                    Id = 1,
+                    Name = "Associated 1 updated",
+                });
+                detachedContext.Set<AssociatedReference>().Update(new AssociatedReference
+                {
+                    Id = 2,
+                    Name = "Associated 2 updated",
+                });
+                detachedContext.Set<AssociatedListItem>().Update(new AssociatedListItem
+                {
+                    Id = 1,
+                    Name = "Associated 1 updated",
+                });
+                detachedContext.Set<Entity>().Update(new Entity
+                {
+                    Id = 1,
+                    Name = "Test entity updated",
+                    AssociatedList = new[]
+                    {
+                        new AssociatedListItem { Id = 1 },
+                        new AssociatedListItem { Id = 2 }
+                    },
+                    AssociatedReference = new AssociatedReference { Id = 1 },
+                    AssociatedReferenceWithShadowKey = new AssociatedReference { Id = 2 },
+                });
+                detachedContext.SaveChanges();
+
+                // THEN the entity should be loaded correctly:
+                Entity persisted = detachedContext.Set<Entity>().Load("1");
+                Assert.NotNull(persisted);
+                Assert.Equal("Test entity updated", persisted.Name);
+                Assert.Equal(2, persisted.AssociatedList.Count);
+                Assert.NotNull(persisted.AssociatedList.FirstOrDefault(a => a.Id == 1));
+                Assert.Equal("Associated 1 updated", persisted.AssociatedList.First(a => a.Id == 1).Name);
+                Assert.NotNull(persisted.AssociatedReference);
+                Assert.Equal(1, persisted.AssociatedReference.Id);
+                Assert.Equal("Associated 1 updated", persisted.AssociatedReference.Name);
+                Assert.NotNull(persisted.AssociatedReferenceWithShadowKey);
+                Assert.Equal(2, persisted.AssociatedReferenceWithShadowKey.Id);
+                Assert.Equal("Associated 2 updated", persisted.AssociatedReferenceWithShadowKey.Name);
+            }
+        }
+
+
+        [Fact]
+        public void when_root_is_updated_then_associalted_child_is_updated()
+        {
+            using (IDetachedContext<TestDbContext> detachedContext = new DetachedContext<TestDbContext>())
+            {
+                // GIVEN a context:
+                detachedContext.DbContext.Add(new AssociatedReference { Id = 1, Name = "Associated 1" });
+                detachedContext.DbContext.Add(new Entity
+                {
+                    Name = "Test entity",
+                    Id = 1,
+                });
+                detachedContext.DbContext.SaveChanges();
+
+                //WHEN the entity and associated child are updated
+                var associated = new AssociatedReference { Id = 1, Name = "Should Ignore" };
+                detachedContext.Set<Entity>().Update(new Entity
+                {
+                    Id = 1,
+                    AssociatedReference = associated,
+                });
+
+                detachedContext.Set<AssociatedReference>().Update(new AssociatedReference()
+                {
+                    Id = 1,
+                    Name = "Associated 1 updated",
+                });
+                detachedContext.SaveChanges();
+
+                // THEN the entity should be loaded correctly:
+                Assert.Equal(1, detachedContext.DbContext.AssociatedReferences.Count());
+                Entity persisted = detachedContext.Set<Entity>().Load("1");
+                Assert.NotNull(persisted);
+                Assert.NotNull(persisted.AssociatedReference);
+                Assert.Equal(1, persisted.AssociatedReference.Id);
+                Assert.Equal("Associated 1 updated", persisted.AssociatedReference.Name);
             }
         }
 

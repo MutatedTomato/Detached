@@ -161,7 +161,7 @@ namespace Detached.EntityFramework.Services
             var args = _eventManager.OnEntityAttaching(detached, parentNavigation);
 
             EntityEntry persisted = GetEntry(detached);
-            if (persisted.State != EntityState.Added && persisted.State != EntityState.Deleted)
+            if (persisted.State == EntityState.Detached)
                 persisted.State = EntityState.Unchanged;
 
             return _eventManager.OnEntityAttached(persisted, parentNavigation).EntityEntry;
